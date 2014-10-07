@@ -1,3 +1,6 @@
-*~
+.Rproj.user
+.Rhistory
 .RData
-.RHistory
+*~
+/groupsitesr.Rcheck/
+/groupsitesr_*.tar.gz
