@@ -88,3 +88,34 @@ t01002_201407 <- fetch(rs,n=-1)
 
 
 dbDisconnect(con)
+
+library(plyr)
+
+
+
+## timestamp is grouper, from craig's code
+
+t101001.aggregated <- ddply(t01001_201407, .(timestamp), summarize,
+                            travel_time = sum(travel_time),
+                            timestamp = timestamp[1])
+
+
+
+## fix timestamp...from Craig's code
+
+t101001.aggregated$dow <- as.factor(weekdays(as.POSIXct(strptime(
+        paste("20",t101001.aggregated$timestamp,sep=""),
+    "%Y%m%d%H%M%S"))))
+
+t101001.aggregated$hr <-
+    as.factor((as.POSIXlt(strptime(
+        paste("20",t101001.aggregated$timestamp,sep=""),
+        "%Y%m%d%H%M%S")))$hour
+              )
+
+mean.sd <- ddply(t101001.aggregated, .(dow,hr), summarize,
+                 mean = round(mean(travel_time), 2),
+                 sd = round(sd(travel_time), 2),
+                 min = min(travel_time),
+                 max = max(travel_time)
+                 )
