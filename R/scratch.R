@@ -155,20 +155,26 @@ sst.aggregator <- function(d){
 
     ## fix timestamp...from Craig's code
 
-    aggregated$dow <- factor(weekdays(as.POSIXct(strptime(
+    ## according to Craig, the hour is off by one
+    ## but which way?  UTC - 9 should be UTC - 8, or UTC - 7??
+    ## So add one, or add two?
+    ##
+    now <- as.POSIXlt(strptime(
         paste("20",aggregated$timestamp,sep=""),
-        "%Y%m%d%H%M%S"))),levels=dow.levels)
+        "%Y%m%d%H%M%S"))
+    now$hour <- now$hour + 1
+    ## mask the edit
+    then <- as.POSIXlt(as.POSIXct(now))
+    aggregated$hr <- as.factor(then$hour)
 
-    aggregated$hr <-
-        as.factor((as.POSIXlt(strptime(
-            paste("20",aggregated$timestamp,sep=""),
-            "%Y%m%d%H%M%S")))$hour
-                  )
+    aggregated$dow <- factor(weekdays(as.POSIXct(then)),
+                             levels=dow.levels)
+
+
     aggregated
 }
 
 sst.north.aggregated <- sst.aggregator(t01001_201407)
-
 sst.south.aggregated <- sst.aggregator(t01002_201407)
 
 
@@ -225,17 +231,17 @@ df.bt <- df.bt.data[bt.northbound.idx,]
 
 df.bt <- df.bt.data[bt.southbound.idx,]
 
-m <- ggplot(df.bt, aes(x=traveltime
-                       ))
+## m <- ggplot(df.bt, aes(x=traveltime
+##                        ))
 
-m + geom_histogram(binwidth=20,
-                   aes(y = ..density..
-                      ,weight=numtrips
-                      ,fill=..density..))+
-                          geom_density() +
-                              facet_wrap( ~ dow )
+## m + geom_histogram(binwidth=20,
+##                    aes(y = ..density..
+##                       ,weight=numtrips
+##                       ,fill=..density..))+
+##                           geom_density() +
+##                               facet_wrap( ~ dow )
 
-m + geom_histogram(binwidth=20,aes(y = ..density..,fill=..density..))+geom_density() + facet_wrap( ~ hr )
+## m + geom_histogram(binwidth=20,aes(y = ..density..,fill=..density..))+geom_density() + facet_wrap( ~ hr )
 
 
 
@@ -244,46 +250,46 @@ m + geom_histogram(binwidth=20,aes(y = ..density..,fill=..density..))+geom_densi
 outlier.north.idx <- sst.north.aggregated$traveltime<600
 outlier.south.idx <- sst.south.aggregated$traveltime<600
 
-m <- ggplot(sst.north.aggregated[outlier.north.idx,], aes(x=traveltime
-                       ))
+## m <- ggplot(sst.north.aggregated[outlier.north.idx,], aes(x=traveltime
+##                        ))
 
-m + geom_histogram(binwidth=20,
-                   aes(y = ..density..
-                      ,fill=..density..))+
-                          geom_density() +
-                              facet_wrap( ~ dow )
+## m + geom_histogram(binwidth=20,
+##                    aes(y = ..density..
+##                       ,fill=..density..))+
+##                           geom_density() +
+##                               facet_wrap( ~ dow )
 
-m + geom_histogram(binwidth=20,aes(y = ..density..,fill=..density..))+geom_density() + facet_wrap( ~ hr )
+## m + geom_histogram(binwidth=20,aes(y = ..density..,fill=..density..))+geom_density() + facet_wrap( ~ hr )
 
 
-bt.histogram.function(sst.north.aggregated[outlier.north.idx,])
+## bt.histogram.function(sst.north.aggregated[outlier.north.idx,])
 
-bt.histogram.function(sst.south.aggregated[outlier.south.idx,])
+## bt.histogram.function(sst.south.aggregated[outlier.south.idx,])
 
 ## for the ks test, need to weight the travel times by the number of observations
 
-nb.weighted.times <- rep(x=df.bt.data[bt.northbound.idx,'traveltime'],
-                         times=df.bt.data[bt.northbound.idx,'numtrips'])
+## nb.weighted.times <- rep(x=df.bt.data[bt.northbound.idx,'traveltime'],
+##                          times=df.bt.data[bt.northbound.idx,'numtrips'])
 
-expect_that(weighted.mean(
-    x=df.bt.data[bt.northbound.idx,'traveltime'],
-    w=df.bt.data[bt.northbound.idx,'numtrips'])
-           ,equals(mean(nb.weighted.times)))
+## expect_that(weighted.mean(
+##     x=df.bt.data[bt.northbound.idx,'traveltime'],
+##     w=df.bt.data[bt.northbound.idx,'numtrips'])
+##            ,equals(mean(nb.weighted.times)))
 
-sb.weighted.times <- rep(x=df.bt.data[bt.southbound.idx,'traveltime'],
-                         times=df.bt.data[bt.southbound.idx,'numtrips'])
+## sb.weighted.times <- rep(x=df.bt.data[bt.southbound.idx,'traveltime'],
+##                          times=df.bt.data[bt.southbound.idx,'numtrips'])
 
-expect_that(weighted.mean(
-    x=df.bt.data[bt.southbound.idx,'traveltime'],
-    w=df.bt.data[bt.southbound.idx,'numtrips'])
-           ,equals(mean(sb.weighted.times)))
+## expect_that(weighted.mean(
+##     x=df.bt.data[bt.southbound.idx,'traveltime'],
+##     w=df.bt.data[bt.southbound.idx,'numtrips'])
+##            ,equals(mean(sb.weighted.times)))
 
 
-ks.test(nb.weighted.times,sb.weighted.times)
-## definitely different distributions
+## ks.test(nb.weighted.times,sb.weighted.times)
+## ## definitely different distributions
 
-ks.test(nb.weighted.times,sst.north.aggregated[outlier.north.idx,'traveltime'])
-## definitely different distributions
+## ks.test(nb.weighted.times,sst.north.aggregated[outlier.north.idx,'traveltime'])
+## ## definitely different distributions
 
 
 ks.test.fn <- function(bt.sst.data,title='ecdf plot',field=NULL){
@@ -352,6 +358,7 @@ bt.sst.s <- rbind(data.frame(traveltime=df.bt.data$traveltime[normal.trips.bt.so
 
 expect_that(max(bt.sst.n$traveltime),is_less_than(600))
 expect_that(max(bt.sst.s$traveltime),is_less_than(600))
+
 
 ## test "scale_color_manual"
 ## m <- ggplot(bt.sst.n, aes(traveltime, colour = type)) + stat_ecdf() +
